@@ -1,18 +1,22 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/stephenSLI/samsung-tv-ws-api/pkg/samsung-tv-api"
-	"os"
 )
 
 func main() {
-	client := samsung_tv_api.NewSamsungTvWebSocket("192.168.1.188", "", 8001, 0, 1, "")
-	resp, err := client.GetDeviceInfo()
+	c := samsung_tv_api.NewSamsungTvWebSocket("192.168.1.188", "13992102", 8002, 0, 1, "")
+	resp, _ := c.Websocket.GetApplicationsList()
 
-	b, _ := json.MarshalIndent(resp, "", "\t")
-	os.Stdout.Write(b)
+	fmt.Printf("getting application details for %s\n", resp.Data.Applications[0].Name)
+	appDetails, err := c.Rest.GetApplicationStatus(resp.Data.Applications[0].AppID)
 
-	fmt.Println(resp.Device, err)
+	fmt.Println(appDetails, err)
+
+	fmt.Printf("runing application %s\n", resp.Data.Applications[0].Name)
+	runErr := c.Websocket.RunApplication(resp.Data.Applications[0].AppID, "", "")
+
+	fmt.Println(runErr)
+
 }

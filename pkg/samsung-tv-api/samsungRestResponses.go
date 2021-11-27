@@ -1,6 +1,6 @@
 package samsung_tv_api
 
-type DeviceResponse struct {
+type RestDeviceResponse struct {
 	Device struct {
 		FrameTVSupport    string `json:"FrameTVSupport"`
 		GamePadSupport    string `json:"GamePadSupport"`
@@ -33,4 +33,12 @@ type DeviceResponse struct {
 	Type      string `json:"type"`
 	URI       string `json:"uri"`
 	Version   string `json:"version"`
+}
+
+type RestApplicationResponse struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Running bool   `json:"running"`
+	Version string `json:"version"`
+	Visible bool   `json:"visible"`
 }

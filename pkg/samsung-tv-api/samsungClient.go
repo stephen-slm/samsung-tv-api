@@ -1,12 +1,12 @@
 package samsung_tv_api
 
 import (
-	"fmt"
 	"log"
 )
 
 type SamsungTvClient struct {
-	rest samsungRestClient
+	Rest      samsungRestClient
+	Websocket samsungWebsocket
 
 	host          string
 	token         string
@@ -35,8 +35,23 @@ func NewSamsungTvWebSocket(host, token string, port, timeout, keyPressDelay int,
 		name:          name,
 	}
 
-	client.rest = samsungRestClient{
+	client.Rest = samsungRestClient{
 		baseUrl: client.formatRestUrl(""),
+	}
+
+	client.Websocket = samsungWebsocket{
+		baseUrl:       client.formatWebSocketUrl("samsung.remote.control"),
+		keyPressDelay: keyPressDelay,
+	}
+
+	wsResp, err := client.Websocket.openConnection()
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	if len(wsResp.Data.Clients) > 0 && wsResp.Data.Clients[0].Attributes.Token != "" {
+		client.token = wsResp.Data.Clients[0].Attributes.Token
 	}
 
 	return client
@@ -46,49 +61,4 @@ func NewSamsungTvWebSocket(host, token string, port, timeout, keyPressDelay int,
 // connection otherwise it is not configured for SSL.
 func (s *SamsungTvClient) isSslConnection() bool {
 	return s.port == 8002
-}
-
-// GetDeviceInfo returns the related Tv information via the rest api.
-func (s *SamsungTvClient) GetDeviceInfo() (DeviceResponse, error) {
-	log.Println("Get device info via rest api")
-
-	output := DeviceResponse{}
-	err := s.rest.makeRestRequest("", "get", &output)
-
-	return output, err
-}
-
-func (s *SamsungTvClient) getApplicationStatus(appId string) (interface{}, error) {
-	log.Println("Get application info via rest api")
-
-	var output interface{}
-	err := s.rest.makeRestRequest(fmt.Sprintf("applications/%s", appId), "get", &output)
-
-	return output, err
-}
-
-func (s *SamsungTvClient) runApplication(appId string) (interface{}, error) {
-	log.Println("Run application via rest api")
-
-	var output interface{}
-	err := s.rest.makeRestRequest(fmt.Sprintf("applications/%s", appId), "post", &output)
-
-	return output, err
-}
-func (s *SamsungTvClient) closeApplication(appId string) (interface{}, error) {
-	log.Println("Run application via rest api")
-
-	var output interface{}
-	err := s.rest.makeRestRequest(fmt.Sprintf("applications/%s", appId), "delete", &output)
-
-	return output, err
-}
-
-func (s *SamsungTvClient) installApplication(appId string) (interface{}, error) {
-	log.Println("Run application via rest api")
-
-	var output interface{}
-	err := s.rest.makeRestRequest(fmt.Sprintf("applications/%s", appId), "PUT", &output)
-
-	return output, err
 }

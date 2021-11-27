@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/stephenSLI/samsung-tv-ws-api/pkg/keys"
 	"golang.org/x/net/websocket"
 	"log"
 	"net/url"
@@ -127,6 +128,10 @@ func (s *samsungWebsocket) RunApplication(appId, appType, metaTag string) error 
 	return s.sendJSON(req)
 }
 
+func (s *samsungWebsocket) sendClick(key string) error {
+	return s.SendKey(key, 1, "Click")
+}
+
 func (s *samsungWebsocket) SendKey(key string, times int, cmd string) error {
 
 	if cmd == "" {
@@ -203,4 +208,12 @@ func (s *samsungWebsocket) MoveCursor(x, y, duration int) error {
 func (s *samsungWebsocket) OpenBrowser(url string) error {
 	log.Printf("opening browser to url: %s via ws api\n", url)
 	return s.RunApplication("org.tizen.browser", "NATIVE_LAUNCH", url)
+}
+
+func (s *samsungWebsocket) PowerOff() error {
+	return s.sendClick(keys.PowerToggle)
+}
+
+func (s *samsungWebsocket) PowerOn() error {
+	return s.sendClick(keys.PowerToggle)
 }

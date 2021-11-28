@@ -1,4 +1,4 @@
-package samsung_tv_api
+package http
 
 import (
 	"crypto/tls"
@@ -10,12 +10,12 @@ import (
 	"strings"
 )
 
-type samsungRestClient struct {
-	baseUrl *url.URL
+type SamsungRestClient struct {
+	BaseUrl *url.URL
 }
 
-func (s *samsungRestClient) makeRestRequest(endpoint, method string, output interface{}) error {
-	u := fmt.Sprintf("%s/%s", s.baseUrl.String(), endpoint)
+func (s *SamsungRestClient) makeRestRequest(endpoint, method string, output interface{}) error {
+	u := fmt.Sprintf("%s/%s", s.BaseUrl.String(), endpoint)
 
 	fmt.Println(u)
 
@@ -43,25 +43,25 @@ func (s *samsungRestClient) makeRestRequest(endpoint, method string, output inte
 }
 
 // GetDeviceInfo returns the related Tv information via the rest api.
-func (s *samsungRestClient) GetDeviceInfo() (RestDeviceResponse, error) {
+func (s *SamsungRestClient) GetDeviceInfo() (DeviceResponse, error) {
 	log.Println("Get device info via rest api")
 
-	output := RestDeviceResponse{}
+	output := DeviceResponse{}
 	err := s.makeRestRequest("", "get", &output)
 
 	return output, err
 }
 
-func (s *samsungRestClient) GetApplicationStatus(appId string) (RestApplicationResponse, error) {
+func (s *SamsungRestClient) GetApplicationStatus(appId string) (ApplicationResponse, error) {
 	log.Println("Get application info via rest api")
 
-	var output RestApplicationResponse
+	var output ApplicationResponse
 	err := s.makeRestRequest(fmt.Sprintf("applications/%s", appId), "get", &output)
 
 	return output, err
 }
 
-func (s *samsungRestClient) RunApplication(appId string) (interface{}, error) {
+func (s *SamsungRestClient) RunApplication(appId string) (interface{}, error) {
 	log.Println("Run application via rest api")
 
 	var output interface{}
@@ -69,7 +69,7 @@ func (s *samsungRestClient) RunApplication(appId string) (interface{}, error) {
 
 	return output, err
 }
-func (s *samsungRestClient) CloseApplication(appId string) (interface{}, error) {
+func (s *SamsungRestClient) CloseApplication(appId string) (interface{}, error) {
 	log.Println("Run application via rest api")
 
 	var output interface{}
@@ -78,7 +78,7 @@ func (s *samsungRestClient) CloseApplication(appId string) (interface{}, error) 
 	return output, err
 }
 
-func (s *samsungRestClient) InstallApplication(appId string) (interface{}, error) {
+func (s *SamsungRestClient) InstallApplication(appId string) (interface{}, error) {
 	log.Println("Run application via rest api")
 
 	var output interface{}

@@ -1,6 +1,6 @@
-package samsung_tv_api
+package http
 
-type RestDeviceResponse struct {
+type DeviceResponse struct {
 	Device struct {
 		FrameTVSupport    string `json:"FrameTVSupport"`
 		GamePadSupport    string `json:"GamePadSupport"`
@@ -35,10 +35,12 @@ type RestDeviceResponse struct {
 	Version   string `json:"version"`
 }
 
-type RestApplicationResponse struct {
+type ApplicationResponse struct {
 	ID      string `json:"id"`
 	Name    string `json:"name"`
 	Running bool   `json:"running"`
 	Version string `json:"version"`
-	Visible bool   `json:"visible"`
+	// If the current application is up and running on the screen, is the
+	// application running and can the people see it?
+	Visible bool `json:"visible"`
 }

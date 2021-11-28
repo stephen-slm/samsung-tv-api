@@ -1,6 +1,6 @@
-package samsung_tv_api
+package websocket
 
-type WsConnectionResponse struct {
+type ConnectionResponse struct {
 	Data struct {
 		Clients []struct {
 			Attributes struct {
@@ -17,7 +17,7 @@ type WsConnectionResponse struct {
 	Event string `json:"event"`
 }
 
-type WsApplicationsResponse struct {
+type ApplicationsResponse struct {
 	Data struct {
 		Applications []struct {
 			AppID   string `json:"appId"`

@@ -12,7 +12,8 @@ func getSslTestClient() *SamsungTvClient {
 		8002,
 		0,
 		1,
-		"ssl.client")
+		"ssl.client",
+		false)
 }
 
 func getTestClient() *SamsungTvClient {
@@ -22,7 +23,8 @@ func getTestClient() *SamsungTvClient {
 		8001,
 		0,
 		1,
-		"standard.client")
+		"standard.client",
+		false)
 }
 
 func TestFormatWebSocketUrl(t *testing.T) {

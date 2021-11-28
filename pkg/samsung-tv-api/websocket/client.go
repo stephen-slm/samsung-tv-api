@@ -1,31 +1,31 @@
-package samsung_tv_api
+package websocket
 
 import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/stephenSLI/samsung-tv-ws-api/pkg/keys"
+	"github.com/stephenSLI/samsung-tv-ws-api/pkg/samsung-tv-api/keys"
 	"golang.org/x/net/websocket"
 	"log"
 	"net/url"
 	"time"
 )
 
-type samsungWebsocket struct {
-	baseUrl       *url.URL
+type SamsungWebsocket struct {
+	BaseUrl       *url.URL
+	KeyPressDelay int
 	conn          *websocket.Conn
-	keyPressDelay int
 }
 
-type WebsocketRequest struct {
+type Request struct {
 	Method string                 `json:"method"`
 	Params map[string]interface{} `json:"params"`
 }
 
-func (s *samsungWebsocket) openConnection() (*WsConnectionResponse, error) {
+func (s *SamsungWebsocket) OpenConnection() (*ConnectionResponse, error) {
 	origin := "http://localhost/"
 
-	config, _ := websocket.NewConfig(s.baseUrl.String(), origin)
+	config, _ := websocket.NewConfig(s.BaseUrl.String(), origin)
 	config.TlsConfig = &tls.Config{InsecureSkipVerify: true}
 
 	ws, err := websocket.DialConfig(config)
@@ -36,13 +36,13 @@ func (s *samsungWebsocket) openConnection() (*WsConnectionResponse, error) {
 
 	s.conn = ws
 
-	var val WsConnectionResponse
+	var val ConnectionResponse
 	readErr := s.readJSON(&val)
 
 	return &val, readErr
 }
 
-func (s *samsungWebsocket) sendJSONReceiveJSON(command interface{}, output interface{}) error {
+func (s *SamsungWebsocket) sendJSONReceiveJSON(command interface{}, output interface{}) error {
 	err := s.sendJSON(command)
 
 	if err != nil {
@@ -52,7 +52,7 @@ func (s *samsungWebsocket) sendJSONReceiveJSON(command interface{}, output inter
 	return s.readJSON(&output)
 }
 
-func (s *samsungWebsocket) sendJSON(command interface{}) error {
+func (s *SamsungWebsocket) sendJSON(command interface{}) error {
 	msg, err := json.Marshal(command)
 
 	fmt.Println(string(msg))
@@ -66,7 +66,7 @@ func (s *samsungWebsocket) sendJSON(command interface{}) error {
 	return err
 }
 
-func (s *samsungWebsocket) read() ([]byte, error) {
+func (s *SamsungWebsocket) read() ([]byte, error) {
 
 	var data []byte
 	err := websocket.Message.Receive(s.conn, &data)
@@ -74,7 +74,7 @@ func (s *samsungWebsocket) read() ([]byte, error) {
 	return data, err
 }
 
-func (s *samsungWebsocket) readJSON(val interface{}) error {
+func (s *SamsungWebsocket) readJSON(val interface{}) error {
 	msg, err := s.read()
 
 	fmt.Println(string(msg))
@@ -86,12 +86,12 @@ func (s *samsungWebsocket) readJSON(val interface{}) error {
 	return json.Unmarshal(msg, val)
 }
 
-func (s *samsungWebsocket) GetApplicationsList() (WsApplicationsResponse, error) {
+func (s *SamsungWebsocket) GetApplicationsList() (ApplicationsResponse, error) {
 	log.Println("Get application lists via ws api")
 
-	var output WsApplicationsResponse
+	var output ApplicationsResponse
 
-	var req = WebsocketRequest{
+	var req = Request{
 		Method: "ms.channel.emit",
 		Params: map[string]interface{}{
 			"event": "ed.installedApp.get",
@@ -103,14 +103,14 @@ func (s *samsungWebsocket) GetApplicationsList() (WsApplicationsResponse, error)
 	return output, err
 }
 
-func (s *samsungWebsocket) RunApplication(appId, appType, metaTag string) error {
+func (s *SamsungWebsocket) RunApplication(appId, appType, metaTag string) error {
 	log.Printf("Running application %s via ws api\n", appId)
 
 	if appType == "" {
 		appType = "DEEP_LINK"
 	}
 
-	var req = WebsocketRequest{
+	var req = Request{
 		Method: "ms.channel.emit",
 		Params: map[string]interface{}{
 			"event": "ed.apps.launch",
@@ -128,11 +128,11 @@ func (s *samsungWebsocket) RunApplication(appId, appType, metaTag string) error 
 	return s.sendJSON(req)
 }
 
-func (s *samsungWebsocket) sendClick(key string) error {
+func (s *SamsungWebsocket) sendClick(key string) error {
 	return s.SendKey(key, 1, "Click")
 }
 
-func (s *samsungWebsocket) SendKey(key string, times int, cmd string) error {
+func (s *SamsungWebsocket) SendKey(key string, times int, cmd string) error {
 
 	if cmd == "" {
 		cmd = "Click"
@@ -143,7 +143,7 @@ func (s *samsungWebsocket) SendKey(key string, times int, cmd string) error {
 	for i := 0; i < times; i++ {
 		log.Printf("Sending key %s via ws api\n", key)
 
-		var req = WebsocketRequest{
+		var req = Request{
 			Method: "ms.remote.control",
 			Params: map[string]interface{}{
 				"Cmd":          cmd,
@@ -159,13 +159,13 @@ func (s *samsungWebsocket) SendKey(key string, times int, cmd string) error {
 			return err
 		}
 
-		time.Sleep(time.Duration(s.keyPressDelay) * time.Millisecond)
+		time.Sleep(time.Duration(s.KeyPressDelay) * time.Millisecond)
 	}
 
 	return nil
 }
 
-func (s *samsungWebsocket) HoldKey(key string, seconds int) error {
+func (s *SamsungWebsocket) HoldKey(key string, seconds int) error {
 	log.Printf("Sending hold key %s for %d seconds via ws api\n", key, seconds)
 
 	pressErr := s.SendKey(key, 1, "Press")
@@ -186,10 +186,10 @@ func (s *samsungWebsocket) HoldKey(key string, seconds int) error {
 	return nil
 }
 
-func (s *samsungWebsocket) MoveCursor(x, y, duration int) error {
+func (s *SamsungWebsocket) MoveCursor(x, y, duration int) error {
 	log.Printf("Sending move Cursor to x: %d, y: %d for duration %d via ws api\n", x, y, duration)
 
-	var req = WebsocketRequest{
+	var req = Request{
 		Method: "ms.remote.control",
 		Params: map[string]interface{}{
 			"Cmd":          "Move",
@@ -205,15 +205,15 @@ func (s *samsungWebsocket) MoveCursor(x, y, duration int) error {
 	return s.sendJSON(req)
 }
 
-func (s *samsungWebsocket) OpenBrowser(url string) error {
+func (s *SamsungWebsocket) OpenBrowser(url string) error {
 	log.Printf("opening browser to url: %s via ws api\n", url)
 	return s.RunApplication("org.tizen.browser", "NATIVE_LAUNCH", url)
 }
 
-func (s *samsungWebsocket) PowerOff() error {
-	return s.sendClick(keys.PowerToggle)
+func (s *SamsungWebsocket) PowerOff() error {
+	return s.sendClick(keys.PowerOff)
 }
 
-func (s *samsungWebsocket) PowerOn() error {
-	return s.sendClick(keys.PowerToggle)
+func (s *SamsungWebsocket) PowerOn() error {
+	return s.sendClick(keys.PowerOn)
 }

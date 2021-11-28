@@ -20,6 +20,8 @@ func main() {
 	fmt.Println(string(deviceJson))
 	fmt.Println(string(appJson))
 
+	c.Websocket.PowerOff()
+
 	//fmt.Printf("runing application %s\n", resp.Data.Applications[0].Name)
 	//runErr := c.Websocket.RunApplication(resp.Data.Applications[0].AppID, "", "")
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/stephenSLI/samsung-tv-ws-api/internal/app/samsung-tv-api/helpers"
 	samsung_tv_api "github.com/stephenSLI/samsung-tv-ws-api/pkg/samsung-tv-api"
+	"log"
 )
 
 func main() {
@@ -20,11 +21,12 @@ func main() {
 	config.Mac = device.Device.WifiMac
 	_ = helpers.SaveConfiguration(&config)
 
-	result, _ := c.Upnp.GetVolume()
-	fmt.Printf("volumn %s", result)
-	_ = c.Upnp.SetVolume(12)
+	muted, err := c.Upnp.GetCurrentMuteStatus()
 
-	result, _ = c.Upnp.GetVolume()
-	fmt.Printf("volumn %s", result)
+	if err != nil {
+		log.Fatalln(muted)
+	}
+
+	fmt.Printf("device mute status is currently: %v\n", muted)
 
 }

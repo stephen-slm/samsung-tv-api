@@ -204,7 +204,7 @@ func (s *SamsungWebsocket) ChangeChannel(channel string) error {
 		}
 	}
 
-	return s.SendKey(keys.Enter, 1, "Click")
+	return s.SendKey(keys.NavigationEnter, 1, "Click")
 }
 
 func (s *SamsungWebsocket) MoveCursor(x, y, duration int) error {

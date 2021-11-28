@@ -22,7 +22,7 @@ func main() {
 
 	result, _ := c.Upnp.GetVolume()
 	fmt.Printf("volumn %s", result)
-	_ = c.Upnp.SetVolume(16)
+	_ = c.Upnp.SetVolume(12)
 
 	result, _ = c.Upnp.GetVolume()
 	fmt.Printf("volumn %s", result)

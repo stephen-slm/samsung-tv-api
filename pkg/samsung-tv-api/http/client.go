@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 type SamsungRestClient struct {
@@ -23,6 +24,7 @@ func (s *SamsungRestClient) makeRestRequest(endpoint, method string, output inte
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
+		Timeout: time.Duration(200) * time.Millisecond,
 	}
 
 	req, err := http.NewRequest(strings.ToUpper(method), u, nil)

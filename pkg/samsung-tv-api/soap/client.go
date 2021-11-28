@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	xj "github.com/basgys/goxml2json"
 )
@@ -35,6 +36,7 @@ func (s *SamsungSoapClient) MakeRestRequest(action, arguments, protocol string, 
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
+		Timeout: time.Duration(200) * time.Millisecond,
 	}
 
 	req, err := http.NewRequest("POST", u, strings.NewReader(body))

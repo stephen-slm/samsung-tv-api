@@ -2,4 +2,6 @@
 
 ## TODO
  * Wake on lan
+ * Key chaining
+ * smart things
 

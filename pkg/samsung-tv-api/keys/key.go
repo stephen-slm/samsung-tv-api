@@ -1,5 +1,7 @@
 package keys
 
+//goland:noinspection ALL
+
 const (
 	//
 	//  POWER

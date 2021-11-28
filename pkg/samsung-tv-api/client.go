@@ -49,18 +49,26 @@ func NewSamsungTvWebSocket(host, token string, port, timeout, keyPressDelay int,
 	}
 
 	if autoConnect {
-		wsResp, err := client.Websocket.OpenConnection()
-
-		if err != nil {
+		if err := client.ConnectionSetup(); err != nil {
 			log.Fatalln(err)
-		}
-
-		if len(wsResp.Data.Clients) > 0 && wsResp.Data.Clients[0].Attributes.Token != "" {
-			client.token = wsResp.Data.Clients[0].Attributes.Token
 		}
 	}
 
 	return client
+}
+
+func (s *SamsungTvClient) ConnectionSetup() error {
+	wsResp, err := s.Websocket.OpenConnection()
+
+	if err != nil {
+		return err
+	}
+
+	if len(wsResp.Data.Clients) > 0 && wsResp.Data.Clients[0].Attributes.Token != "" {
+		s.token = wsResp.Data.Clients[0].Attributes.Token
+	}
+
+	return nil
 }
 
 // isSslConnection returns true if and only if the port is the SSL port for the
@@ -101,4 +109,8 @@ func (s *SamsungTvClient) formatRestUrl(endpoint string) *url.URL {
 	}
 
 	return u
+}
+
+func (s *SamsungTvClient) GetToken() string {
+	return s.token
 }

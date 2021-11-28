@@ -23,6 +23,11 @@ type Request struct {
 }
 
 func (s *SamsungWebsocket) OpenConnection() (*ConnectionResponse, error) {
+	if s.conn != nil {
+		_ = s.conn.Close()
+		s.conn = nil
+	}
+
 	origin := "http://localhost/"
 
 	config, _ := websocket.NewConfig(s.BaseUrl.String(), origin)

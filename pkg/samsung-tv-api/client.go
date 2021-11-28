@@ -63,6 +63,9 @@ func NewSamsungTvWebSocket(host, token string, port, timeout, keyPressDelay int,
 	return client
 }
 
+// ConnectionSetup will attempt to open a connection to the websocket endpoint on
+// the TV while after connecting, update the internal token to the newest value
+// regardless if its the same.
 func (s *SamsungTvClient) ConnectionSetup() error {
 	wsResp, err := s.Websocket.OpenConnection()
 
@@ -123,10 +126,11 @@ func (s *SamsungTvClient) formatUpnpUrl(endpoint string) *url.URL {
 	return &url.URL{
 		Scheme: "http",
 		Host:   fmt.Sprintf("%s:%d", s.host, 9197),
-		Path:   fmt.Sprintf("upnp/control/"),
+		Path:   fmt.Sprintf("upnp/control/%s", endpoint),
 	}
 }
 
+// GetToken returns the current Auth token used by the client.
 func (s *SamsungTvClient) GetToken() string {
 	return s.token
 }

@@ -19,7 +19,13 @@ type SamsungSoapClient struct {
 	BaseUrl *url.URL
 }
 
-func (s *SamsungSoapClient) MakeSoapRequest(action, arguments, protocol string, output interface{}) error {
+// makeSoapRequest will send a API http call (soap) to the given endpoint (base url + protocol).
+// always being a POST. response will be converted to JSON and will be unmarshalled to the
+// output interface.
+//
+// TODO
+// 	* support binding to a non 200 response or determine the error message returned and use it in the error response
+func (s *SamsungSoapClient) makeSoapRequest(action, arguments, protocol string, output interface{}) error {
 	u := fmt.Sprintf("%s%s1", s.BaseUrl.String(), protocol)
 
 	body := fmt.Sprintf("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"+
@@ -66,31 +72,40 @@ func (s *SamsungSoapClient) MakeSoapRequest(action, arguments, protocol string, 
 }
 
 // GetCurrentVolume returns the value of the current volume level
+//
+// TODO
+// 	* This has to been tested with any bad input, should be regarded as not stable.
 func (s *SamsungSoapClient) GetCurrentVolume() (string, error) {
 	log.Println("Get device volume via saop api")
 
 	output := GetDeviceVolumeResponse{}
-	err := s.MakeSoapRequest("GetCurrentVolume", "<Channel>Master</Channel>", "RenderingControl", &output)
+	err := s.makeSoapRequest("GetCurrentVolume", "<Channel>Master</Channel>", "RenderingControl", &output)
 
 	return output.Envelope.Body.GetVolumeResponse.CurrentVolume, err
 }
 
 // SetVolume will update the current volume of the display to the provided value.
+//
+// TODO
+// 	* This has to been tested with any bad input, should be regarded as not stable.
 func (s *SamsungSoapClient) SetVolume(volume int) error {
 	log.Printf("set the volume of the tv to %d via soap api\n", volume)
 
 	var output interface{}
 
 	args := fmt.Sprintf("<Channel>Master</Channel><DesiredVolume>%d</DesiredVolume>", volume)
-	return s.MakeSoapRequest("SetVolume", args, "RenderingControl", &output)
+	return s.makeSoapRequest("SetVolume", args, "RenderingControl", &output)
 }
 
 // GetCurrentMuteStatus returns true if and only if the TV is currently muted
+//
+// TODO
+// 	* This has to been tested with any bad input, should be regarded as not stable.
 func (s *SamsungSoapClient) GetCurrentMuteStatus() (bool, error) {
 	log.Println("Get device mute status via saop api")
 
 	output := GetCurrentMuteStatusResponse{}
-	err := s.MakeSoapRequest("GetMute", "<Channel>Master</Channel>", "RenderingControl", &output)
+	err := s.makeSoapRequest("GetMute", "<Channel>Master</Channel>", "RenderingControl", &output)
 
 	if err != nil {
 		return false, err
@@ -100,13 +115,17 @@ func (s *SamsungSoapClient) GetCurrentMuteStatus() (bool, error) {
 }
 
 // SetCurrentMedia will tell the display to play the current media via the URL.
+//
+// TODO
+// 	* This has to been tested with any bad input, should be regarded as not stable.
+// 	* This requires to be tested, it has not been ran to close any applications yet.
 func (s *SamsungSoapClient) SetCurrentMedia(url string) error {
 	args := fmt.Sprintf("<CurrentURI>%s</CurrentURI><CurrentURIMetaData></CurrentURIMetaData>", url)
 
 	var output interface{}
 	var err error
 
-	err = s.MakeSoapRequest("SetAVTransportURI", args, "AVTransport", &output)
+	err = s.makeSoapRequest("SetAVTransportURI", args, "AVTransport", &output)
 
 	if err != nil {
 		return err
@@ -116,7 +135,11 @@ func (s *SamsungSoapClient) SetCurrentMedia(url string) error {
 }
 
 // PlayCurrentMedia will attempt to play the current media already set on the display.
+//
+// TODO
+// 	* This has to been tested with any bad input, should be regarded as not stable.
+// 	* This requires to be tested, it has not been ran to close any applications yet.
 func (s *SamsungSoapClient) PlayCurrentMedia() error {
 	var output interface{}
-	return s.MakeSoapRequest("Play", "<Speed>1</Speed>", "AVTransport", &output)
+	return s.makeSoapRequest("Play", "<Speed>1</Speed>", "AVTransport", &output)
 }

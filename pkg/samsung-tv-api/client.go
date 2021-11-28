@@ -3,6 +3,7 @@ package samsung_tv_api
 import (
 	"fmt"
 	"github.com/stephenSLI/samsung-tv-ws-api/pkg/samsung-tv-api/http"
+	"github.com/stephenSLI/samsung-tv-ws-api/pkg/samsung-tv-api/soap"
 	"github.com/stephenSLI/samsung-tv-ws-api/pkg/samsung-tv-api/websocket"
 	"log"
 	"net/url"
@@ -11,6 +12,7 @@ import (
 type SamsungTvClient struct {
 	Rest      http.SamsungRestClient
 	Websocket websocket.SamsungWebsocket
+	Upnp      soap.SamsungSoapClient
 
 	host          string
 	token         string
@@ -46,6 +48,10 @@ func NewSamsungTvWebSocket(host, token string, port, timeout, keyPressDelay int,
 	client.Websocket = websocket.SamsungWebsocket{
 		BaseUrl:       client.formatWebSocketUrl("samsung.remote.control"),
 		KeyPressDelay: keyPressDelay,
+	}
+
+	client.Upnp = soap.SamsungSoapClient{
+		BaseUrl: client.formatUpnpUrl(""),
 	}
 
 	if autoConnect {
@@ -109,6 +115,16 @@ func (s *SamsungTvClient) formatRestUrl(endpoint string) *url.URL {
 	}
 
 	return u
+}
+
+// formatUpnpUrl returns the formatted api url for connecting to
+// the tv soap service
+func (s *SamsungTvClient) formatUpnpUrl(endpoint string) *url.URL {
+	return &url.URL{
+		Scheme: "http",
+		Host:   fmt.Sprintf("%s:%d", s.host, 9197),
+		Path:   fmt.Sprintf("upnp/control/"),
+	}
 }
 
 func (s *SamsungTvClient) GetToken() string {

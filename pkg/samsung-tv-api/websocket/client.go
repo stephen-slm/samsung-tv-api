@@ -8,6 +8,7 @@ import (
 	"golang.org/x/net/websocket"
 	"log"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -164,7 +165,7 @@ func (s *SamsungWebsocket) SendKey(key string, times int, cmd string) error {
 			return err
 		}
 
-		time.Sleep(time.Duration(s.KeyPressDelay) * time.Millisecond)
+		time.Sleep(time.Duration(s.KeyPressDelay) * time.Millisecond * 100)
 	}
 
 	return nil
@@ -189,6 +190,21 @@ func (s *SamsungWebsocket) HoldKey(key string, seconds int) error {
 	}
 
 	return nil
+}
+
+// ChangeChannel will convert the provided channel numbers into key presses and
+// send these key presses to the TV. Ensuring to send enter after completion.
+func (s *SamsungWebsocket) ChangeChannel(channel string) error {
+	split := strings.Split(channel, "")
+
+	for _, digit := range split {
+		err := s.SendKey(fmt.Sprintf("KEY_%s", digit), 1, "Click")
+		if err != nil {
+			return err
+		}
+	}
+
+	return s.SendKey(keys.Enter, 1, "Click")
 }
 
 func (s *SamsungWebsocket) MoveCursor(x, y, duration int) error {

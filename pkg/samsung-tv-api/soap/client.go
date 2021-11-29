@@ -4,19 +4,18 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	xj "github.com/basgys/goxml2json"
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
-	"time"
-
-	xj "github.com/basgys/goxml2json"
 )
 
 // This package covers the support for the Universal Plug & Play (UPNP)
 
 type SamsungSoapClient struct {
-	BaseUrl *url.URL
+	BaseUrl func(string) *url.URL
 }
 
 // makeSoapRequest will send a API http call (soap) to the given endpoint (base url + protocol).
@@ -26,7 +25,8 @@ type SamsungSoapClient struct {
 // TODO
 // 	* support binding to a non 200 response or determine the error message returned and use it in the error response
 func (s *SamsungSoapClient) makeSoapRequest(action, arguments, protocol string, output interface{}) error {
-	u := fmt.Sprintf("%s%s1", s.BaseUrl.String(), protocol)
+	u := s.BaseUrl(protocol + "1").String()
+	fmt.Println(u)
 
 	body := fmt.Sprintf("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"+
 		"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">\n"+
@@ -42,7 +42,6 @@ func (s *SamsungSoapClient) makeSoapRequest(action, arguments, protocol string, 
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
-		Timeout: time.Duration(200) * time.Millisecond,
 	}
 
 	req, err := http.NewRequest("POST", u, strings.NewReader(body))
@@ -75,13 +74,17 @@ func (s *SamsungSoapClient) makeSoapRequest(action, arguments, protocol string, 
 //
 // TODO
 // 	* This has to been tested with any bad input, should be regarded as not stable.
-func (s *SamsungSoapClient) GetCurrentVolume() (string, error) {
+func (s *SamsungSoapClient) GetCurrentVolume() (int, error) {
 	log.Println("Get device volume via saop api")
 
 	output := GetDeviceVolumeResponse{}
-	err := s.makeSoapRequest("GetCurrentVolume", "<Channel>Master</Channel>", "RenderingControl", &output)
+	err := s.makeSoapRequest("GetVolume", "<Channel>Master</Channel>", "RenderingControl", &output)
 
-	return output.Envelope.Body.GetVolumeResponse.CurrentVolume, err
+	if err != nil {
+		return -1, err
+	}
+
+	return strconv.Atoi(output.Envelope.Body.GetVolumeResponse.CurrentVolume)
 }
 
 // SetVolume will update the current volume of the display to the provided value.

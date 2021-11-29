@@ -13,7 +13,7 @@ import (
 )
 
 type SamsungWebsocket struct {
-	BaseUrl       *url.URL
+	BaseUrl       func(string) *url.URL
 	KeyPressDelay int
 	conn          *websocket.Conn
 }
@@ -35,8 +35,11 @@ func (s *SamsungWebsocket) OpenConnection() (*ConnectionResponse, error) {
 	}
 
 	origin := "http://localhost/"
+	u := s.BaseUrl("samsung.remote.control").String()
 
-	config, _ := websocket.NewConfig(s.BaseUrl.String(), origin)
+	fmt.Println(u)
+
+	config, _ := websocket.NewConfig(u, origin)
 	config.TlsConfig = &tls.Config{InsecureSkipVerify: true}
 
 	ws, err := websocket.DialConfig(config)
@@ -63,7 +66,7 @@ func (s *SamsungWebsocket) sendJSONReceiveJSON(command interface{}, output inter
 		return err
 	}
 
-	return s.readJSON(&output)
+	return s.readJSON(output)
 }
 
 // sendJSON will convert the provided command interface to JSON and then
@@ -72,7 +75,6 @@ func (s *SamsungWebsocket) sendJSON(command interface{}) error {
 	msg, err := json.Marshal(command)
 
 	fmt.Println(string(msg))
-	fmt.Println(command)
 
 	if err != nil {
 		return err
@@ -85,6 +87,7 @@ func (s *SamsungWebsocket) sendJSON(command interface{}) error {
 // read will read the next frame of data from the websocket.
 // Returning the byte array back.
 func (s *SamsungWebsocket) read() ([]byte, error) {
+	fmt.Println("reading content")
 
 	var data []byte
 	err := websocket.Message.Receive(s.conn, &data)
@@ -97,7 +100,7 @@ func (s *SamsungWebsocket) read() ([]byte, error) {
 func (s *SamsungWebsocket) readJSON(val interface{}) error {
 	msg, err := s.read()
 
-	fmt.Println(string(msg))
+	fmt.Println("read json response", string(msg), err)
 
 	if err != nil {
 		return err
@@ -129,6 +132,7 @@ func (s *SamsungWebsocket) GetApplicationsList() (ApplicationsResponse, error) {
 	}
 
 	err := s.sendJSONReceiveJSON(req, &output)
+
 	return output, err
 }
 
@@ -167,7 +171,7 @@ func (s *SamsungWebsocket) RunApplication(appId, appType, metaTag string) error 
 //
 // TODO
 // 	* This has to been tested with any bad input, should be regarded as not stable.
-func (s *SamsungWebsocket) sendClick(key string) error {
+func (s *SamsungWebsocket) SendClick(key string) error {
 	return s.SendKey(key, 1, "Click")
 }
 
@@ -289,13 +293,21 @@ func (s *SamsungWebsocket) OpenBrowser(url string) error {
 	return s.RunApplication("org.tizen.browser", "NATIVE_LAUNCH", url)
 }
 
-// PowerOff will send the keys.PowerOff key which will attempt to turn of
+// Power will send the keys.Power key which will attempt to turn off or on
+//
+// TODO
+// 	* This requires to be tested, it has not been ran to close any applications yet.
+func (s *SamsungWebsocket) Power() error {
+	return s.SendClick(keys.Power)
+}
+
+// PowerOff will send the keys.PowerOff key which will attempt to turn off
 // the TV if and only if its on on and a legacy TV. Otherwise, use Power Toggle.
 //
 // TODO
 // 	* This requires to be tested, it has not been ran to close any applications yet.
 func (s *SamsungWebsocket) PowerOff() error {
-	return s.sendClick(keys.PowerOff)
+	return s.SendClick(keys.PowerOff)
 }
 
 // PowerOn will send the keys.PowerOn key which will attempt to turn on
@@ -304,5 +316,9 @@ func (s *SamsungWebsocket) PowerOff() error {
 // TODO
 // 	* This requires to be tested, it has not been ran to close any applications yet.
 func (s *SamsungWebsocket) PowerOn() error {
-	return s.sendClick(keys.PowerOn)
+	return s.SendClick(keys.PowerOn)
+}
+
+func (s *SamsungWebsocket) Disconnect() error {
+	return s.conn.Close()
 }

@@ -4,15 +4,15 @@ type ConnectionResponse struct {
 	Data struct {
 		Clients []struct {
 			Attributes struct {
-				Name  string `json:"name"`
-				Token string `json:"token"`
+				Name interface{} `json:"name"`
 			} `json:"attributes"`
 			ConnectTime int64  `json:"connectTime"`
 			DeviceName  string `json:"deviceName"`
 			ID          string `json:"id"`
 			IsHost      bool   `json:"isHost"`
 		} `json:"clients"`
-		ID string `json:"id"`
+		ID    string `json:"id"`
+		Token string `json:"token"`
 	} `json:"data"`
 	Event string `json:"event"`
 }

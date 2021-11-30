@@ -61,8 +61,6 @@ func (s *SamsungSoapClient) makeSoapRequest(action, arguments, protocol string, 
 
 	content, convertErr := xj.Convert(resp.Body)
 
-	fmt.Printf(content.String())
-
 	if convertErr != nil {
 		return convertErr
 	}

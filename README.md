@@ -4,13 +4,15 @@
 
 This project is a library for remote controlling Samsung televisions via a TCP/IP connection.
 
-It currently supports modern (post-2016) TVs with Ethernet or Wi-Fi connectivity. They should be all models with TizenOs.
+It currently supports modern (post-2016) TVs with Ethernet or Wi-Fi connectivity. They should be all models with
+TizenOs.
 
 ## Install
 
 ## Usage
 
-### Basic Setup
+### Basic Setup & Usage
+
 ```go
 config := helpers.LoadConfiguration()
 
@@ -51,7 +53,7 @@ if updatedToken != "" && updatedToken != config.Token {
 ### Toggle Power
 
 ```go 
-if err := c.Websocket.PowerOn(); err != nil {
+if err := c.Websocket.Power(); err != nil {
 	log.Fatalln(err)
 }
 ```
@@ -60,25 +62,88 @@ if err := c.Websocket.PowerOn(); err != nil {
 
 ```go
 if err := c.Websocket.OpenBrowser("https://www.google.com"); err != nil {
-	log.Fatalln(err)
+log.Fatalln(err)
 }
 ```
 
 ### Get Applications
 
-### Get Application
+```golang
+if apps, err := c.Websocket.GetApplicationsList(); err == nil {
+	firstApp := apps.Data.Applications[0]
+	fmt.Println(fmt.Sprintf("application name: %s", firstApp.Name))
+}
+```
+
+### Get Application Details
+
+```golang
+if apps, err := c.Websocket.GetApplicationsList(); err == nil {
+	firstApp := apps.Data.Applications[0]
+
+	appDetails, _ := c.Rest.GetApplicationStatus(firstApp.AppID)
+	byteData, _ := json.MarshalIndent(appDetails, " ", "\t")
+
+	fmt.Println(string(byteData))
+}
+```
 
 ### Close Application
 
+```golang
+if _, err := c.Rest.CloseApplication(AppID); err != nil {
+	fmt.Println(err)
+}
+```
+
 ### Install Application
+```golang
+if _, err := c.Rest.InstallApplication(AppID); err != nil {
+	fmt.Println(err)
+}
+```
 
 ### Get TV Information
-
+```golang
+if deviceDetails, err := c.Rest.GetDeviceInfo(); err == nil {
+	byteData, _ := json.MarshalIndent(deviceDetails, "", "\t")
+	fmt.Println(string(byteData))
+}
+```
 ## Full API Listings
+
+### Rest
+	* GetDeviceInfo() (DeviceResponse, error)
+	* GetApplicationStatus(appId string) (ApplicationResponse, error)
+	* RunApplication(appId string) (interface{}, error)
+	* CloseApplication(appId string) (interface{}, error)
+	* InstallApplication(appId string) (interface{}, error)
+
+### Websocket
+	* GetApplicationList() (ApplicationResopnse, error)
+	* RunApplication(appId, appType, metaTag string) error
+	* SendClick(key string) error
+	* SendKey(key string, times int, cmd string) error
+	* HoldKey(key string, seconds int) error
+	* ChangeChannel(channel string) error
+	* MoveCursor(x, y, duration int) error
+	* OpenBrowser(url string) error
+	* Power() error
+	* PowerOff() error
+	* PowerOn() error
+	* Disconnect() error
+
+### UpNp
+	* GetCurrentVolume() (int, error)
+	* SetVolume(volume int) error 
+	* GetCurrentMuteStatus() (bool, error) 
+	* SetCurrentMedia(url string) error 
+	* PlayCurrentMedia() error 
 
 ## Supported TVs
 
-List of support TV models. https://developer.samsung.com/smarttv/develop/extension-libraries/smart-view-sdk/supported-device/supported-tvs.html
+List of support TV
+models. https://developer.samsung.com/smarttv/develop/extension-libraries/smart-view-sdk/supported-device/supported-tvs.html
 
 ```
 2017 : M5500 and above

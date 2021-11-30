@@ -37,8 +37,6 @@ func (s *SamsungWebsocket) OpenConnection() (*ConnectionResponse, error) {
 	origin := "http://localhost/"
 	u := s.BaseUrl("samsung.remote.control").String()
 
-	fmt.Println(u)
-
 	config, _ := websocket.NewConfig(u, origin)
 	config.TlsConfig = &tls.Config{InsecureSkipVerify: true}
 
@@ -74,8 +72,6 @@ func (s *SamsungWebsocket) sendJSONReceiveJSON(command interface{}, output inter
 func (s *SamsungWebsocket) sendJSON(command interface{}) error {
 	msg, err := json.Marshal(command)
 
-	fmt.Println(string(msg))
-
 	if err != nil {
 		return err
 	}
@@ -87,8 +83,6 @@ func (s *SamsungWebsocket) sendJSON(command interface{}) error {
 // read will read the next frame of data from the websocket.
 // Returning the byte array back.
 func (s *SamsungWebsocket) read() ([]byte, error) {
-	fmt.Println("reading content")
-
 	var data []byte
 	err := websocket.Message.Receive(s.conn, &data)
 
@@ -99,8 +93,6 @@ func (s *SamsungWebsocket) read() ([]byte, error) {
 // to convert the content to JSON and unmarshal to the given type.
 func (s *SamsungWebsocket) readJSON(val interface{}) error {
 	msg, err := s.read()
-
-	fmt.Println("read json response", string(msg), err)
 
 	if err != nil {
 		return err

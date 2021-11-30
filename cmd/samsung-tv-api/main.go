@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/stephenSLI/samsung-tv-ws-api/internal/app/samsung-tv-api/helpers"
 	samsung_tv_api "github.com/stephenSLI/samsung-tv-ws-api/pkg/samsung-tv-api"
 )
@@ -22,15 +21,10 @@ func main() {
 
 	if updatedToken != "" && updatedToken != config.Token {
 		config.Token = updatedToken
-
 	}
 
 	config.Mac = device.Device.WifiMac
 	_ = helpers.SaveConfiguration(&config)
 
-	app, _ := c.Websocket.GetApplicationsList()
-
-	fmt.Println(app)
-
-	c.Disconnect()
+	_ = c.Disconnect()
 }

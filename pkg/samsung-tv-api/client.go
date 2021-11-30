@@ -121,6 +121,10 @@ func (s *SamsungTvClient) formatRestUrl(endpoint string) *url.URL {
 		endpoint = "/" + endpoint
 	}
 
+	if endpoint == "" || string(endpoint[len(endpoint)-1]) != "/" {
+		endpoint = "/"
+	}
+
 	u := &url.URL{
 		Scheme: "http",
 		Host:   fmt.Sprintf("%s:%d", s.host, s.port),
@@ -139,6 +143,10 @@ func (s *SamsungTvClient) formatRestUrl(endpoint string) *url.URL {
 func (s *SamsungTvClient) formatUpnpUrl(endpoint string) *url.URL {
 	if endpoint != "" && string(endpoint[0]) != "/" {
 		endpoint = "/" + endpoint
+	}
+
+	if endpoint == "" || string(endpoint[len(endpoint)-1]) != "/" {
+		endpoint = "/"
 	}
 
 	u := &url.URL{

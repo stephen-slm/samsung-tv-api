@@ -23,7 +23,7 @@ type SamsungRestClient struct {
 func (s *SamsungRestClient) makeRestRequest(endpoint, method string, output interface{}) error {
 	u := s.BaseUrl(endpoint).String()
 
-	fmt.Println(u)
+	log.Printf("rest url %s\n", u)
 
 	client := &http.Client{
 		Transport: &http.Transport{

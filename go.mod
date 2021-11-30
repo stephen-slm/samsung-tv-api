@@ -1,4 +1,4 @@
-module github.com/stephenSLI/samsung-tv-api
+module github.com/stephensli/samsung-tv-api
 
 go 1.17
 

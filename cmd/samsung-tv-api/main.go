@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/stephenSLI/samsung-tv-ws-api/internal/app/samsung-tv-api/helpers"
-	samsung_tv_api "github.com/stephenSLI/samsung-tv-ws-api/pkg/samsung-tv-api"
+	"github.com/stephenSLI/samsung-tv-api/internal/app/samsung-tv-api/helpers"
+	samsung_tv_api "github.com/stephenSLI/samsung-tv-api/pkg/samsung-tv-api"
 )
 
 func main() {

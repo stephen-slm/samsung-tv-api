@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/stephenSLI/samsung-tv-ws-api/pkg/samsung-tv-api/keys"
+	"github.com/stephenSLI/samsung-tv-api/pkg/samsung-tv-api/keys"
 	"golang.org/x/net/websocket"
 	"log"
 	"net/url"

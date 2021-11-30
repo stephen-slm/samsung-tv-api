@@ -3,9 +3,9 @@ package samsung_tv_api
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/stephenSLI/samsung-tv-ws-api/pkg/samsung-tv-api/http"
-	"github.com/stephenSLI/samsung-tv-ws-api/pkg/samsung-tv-api/soap"
-	"github.com/stephenSLI/samsung-tv-ws-api/pkg/samsung-tv-api/websocket"
+	"github.com/stephenSLI/samsung-tv-api/pkg/samsung-tv-api/http"
+	"github.com/stephenSLI/samsung-tv-api/pkg/samsung-tv-api/soap"
+	"github.com/stephenSLI/samsung-tv-api/pkg/samsung-tv-api/websocket"
 	"log"
 	"net/url"
 )
@@ -103,7 +103,7 @@ func (s *SamsungTvClient) formatWebSocketUrl(endpoint string) *url.URL {
 		Scheme:   "ws",
 		Host:     fmt.Sprintf("%s:%d", s.host, s.port),
 		Path:     fmt.Sprintf("api/v2/channels%s", endpoint),
-		RawQuery: fmt.Sprintf("?name=%s", name),
+		RawQuery: fmt.Sprintf("name=%s", name),
 	}
 
 	if s.isSslConnection() {
@@ -122,7 +122,7 @@ func (s *SamsungTvClient) formatRestUrl(endpoint string) *url.URL {
 	}
 
 	if endpoint == "" || string(endpoint[len(endpoint)-1]) != "/" {
-		endpoint = "/"
+		endpoint += "/"
 	}
 
 	u := &url.URL{
@@ -145,19 +145,10 @@ func (s *SamsungTvClient) formatUpnpUrl(endpoint string) *url.URL {
 		endpoint = "/" + endpoint
 	}
 
-	if endpoint == "" || string(endpoint[len(endpoint)-1]) != "/" {
-		endpoint = "/"
-	}
-
 	u := &url.URL{
 		Scheme: "http",
 		Host:   fmt.Sprintf("%s:%d", s.host, 9197),
 		Path:   fmt.Sprintf("upnp/control%s", endpoint),
-	}
-
-	if s.isSslConnection() {
-		u.Scheme += "s"
-		return u
 	}
 
 	return u

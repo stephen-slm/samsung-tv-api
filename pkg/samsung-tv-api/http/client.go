@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -45,7 +46,10 @@ func (s *SamsungRestClient) makeRestRequest(endpoint, method string, output inte
 		return clientErr
 	}
 
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
+
 	return json.NewDecoder(resp.Body).Decode(&output)
 }
 
@@ -68,7 +72,7 @@ func (s *SamsungRestClient) GetDeviceInfo() (DeviceResponse, error) {
 // TODO
 // 	* This has to been tested with any bad input, should be regarded as not stable.
 func (s *SamsungRestClient) GetApplicationStatus(appId string) (ApplicationResponse, error) {
-	log.Println("Get application info via rest api")
+	log.Println("Getting applications info via rest api")
 
 	var output ApplicationResponse
 	err := s.makeRestRequest(fmt.Sprintf("applications/%s", appId), "get", &output)

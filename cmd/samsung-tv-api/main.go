@@ -12,7 +12,7 @@ func main() {
 		"192.168.1.188",
 		config.Token,
 		8002,
-		5,
+		500,
 		"stephenLaptop",
 		true)
 

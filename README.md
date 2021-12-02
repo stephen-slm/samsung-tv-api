@@ -66,7 +66,7 @@ if err := c.Websocket.Power(); err != nil {
 
 ```go
 if err := c.Websocket.OpenBrowser("https://www.google.com"); err != nil {
-log.Fatalln(err)
+	log.Fatalln(err)
 }
 ```
 
@@ -114,6 +114,13 @@ if deviceDetails, err := c.Rest.GetDeviceInfo(); err == nil {
 	fmt.Println(string(byteData))
 }
 ```
+
+### Wake on Lan
+```go
+if err := samsung_tv_api.WakeOnLan(config.Mac); err == nil {
+	c.Websocket.Power()
+}
+```
 ## Full API Listings
 
 ### Rest
@@ -143,6 +150,9 @@ if deviceDetails, err := c.Rest.GetDeviceInfo(); err == nil {
 	* GetCurrentMuteStatus() (bool, error) 
 	* SetCurrentMedia(url string) error 
 	* PlayCurrentMedia() error 
+
+### Other
+	* WakeOnLan(mac string) error
 
 ## Supported TVs
 

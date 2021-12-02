@@ -3,6 +3,7 @@ package samsung_tv_api
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/stephensli/samsung-tv-api/internal/app/samsung-tv-api/wol"
 	"github.com/stephensli/samsung-tv-api/pkg/samsung-tv-api/http"
 	"github.com/stephensli/samsung-tv-api/pkg/samsung-tv-api/soap"
 	"github.com/stephensli/samsung-tv-api/pkg/samsung-tv-api/websocket"
@@ -17,6 +18,7 @@ type SamsungTvClient struct {
 
 	host          string
 	token         string
+	mac           string
 	port          int
 	keyPressDelay int
 	name          string
@@ -161,4 +163,16 @@ func (s *SamsungTvClient) Disconnect() error {
 // GetToken returns the current Auth token used by the client.
 func (s *SamsungTvClient) GetToken() string {
 	return s.token
+}
+
+// WakeOnLan broadcasts a magic packet to all listening devices with the target
+// mac address being the device (provided) thus telling the TV to turn on.
+func WakeOnLan(mac string) error {
+	packet, err := wol.NewMagicPacket(mac)
+
+	if err != nil {
+		return err
+	}
+
+	return packet.Send("255.255.255.255")
 }

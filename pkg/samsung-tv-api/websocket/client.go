@@ -9,13 +9,18 @@ import (
 	"log"
 	"net/url"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 )
 
 type SamsungWebsocket struct {
-	BaseUrl       func(string) *url.URL
-	KeyPressDelay int
-	conn          *websocket.Conn
+	BaseUrl         func(string) *url.URL
+	KeyPressDelay   int
+	conn            *websocket.Conn
+	readMutex       sync.Mutex
+	writeMutex      sync.Mutex
+	isReadWriteMode int32
 }
 
 type Request struct {
@@ -33,6 +38,9 @@ func (s *SamsungWebsocket) OpenConnection() (*ConnectionResponse, error) {
 		_ = s.conn.Close()
 		s.conn = nil
 	}
+
+	s.readMutex = sync.Mutex{}
+	s.writeMutex = sync.Mutex{}
 
 	origin := "http://localhost/"
 	u := s.BaseUrl("samsung.remote.control").String()
@@ -58,6 +66,17 @@ func (s *SamsungWebsocket) OpenConnection() (*ConnectionResponse, error) {
 // and then receive content back from the TV, unmarshalling the response to the output
 // interface.
 func (s *SamsungWebsocket) sendJSONReceiveJSON(command interface{}, output interface{}) error {
+	s.writeMutex.Lock()
+	s.readMutex.Lock()
+
+	atomic.AddInt32(&s.isReadWriteMode, 1)
+
+	defer func() {
+		atomic.AddInt32(&s.isReadWriteMode, -1)
+		s.writeMutex.Unlock()
+		s.readMutex.Unlock()
+	}()
+
 	err := s.sendJSON(command)
 
 	if err != nil {
@@ -70,6 +89,11 @@ func (s *SamsungWebsocket) sendJSONReceiveJSON(command interface{}, output inter
 // sendJSON will convert the provided command interface to JSON and then
 // into a byte array stream, sending it to the server.
 func (s *SamsungWebsocket) sendJSON(command interface{}) error {
+	if atomic.LoadInt32(&s.isReadWriteMode) != 1 {
+		s.writeMutex.Lock()
+		defer s.writeMutex.Unlock()
+	}
+
 	msg, err := json.Marshal(command)
 
 	if err != nil {
@@ -77,12 +101,19 @@ func (s *SamsungWebsocket) sendJSON(command interface{}) error {
 	}
 
 	_, err = s.conn.Write(msg)
+
 	return err
 }
 
 // read will read the next frame of data from the websocket.
 // Returning the byte array back.
 func (s *SamsungWebsocket) read() ([]byte, error) {
+	if atomic.LoadInt32(&s.isReadWriteMode) != 1 {
+		fmt.Println("atomic read lock not set, locking read", atomic.LoadInt32(&s.isReadWriteMode))
+		s.readMutex.Lock()
+		defer s.readMutex.Unlock()
+	}
+
 	var data []byte
 	err := websocket.Message.Receive(s.conn, &data)
 
@@ -111,7 +142,7 @@ func (s *SamsungWebsocket) readJSON(val interface{}) error {
 //
 // DOC: TODO
 func (s *SamsungWebsocket) GetApplicationsList() (ApplicationsResponse, error) {
-	log.Println("Get application lists via ws api")
+	log.Println("Getting applications lists via ws api")
 
 	var output ApplicationsResponse
 
@@ -199,7 +230,7 @@ func (s *SamsungWebsocket) SendKey(key string, times int, cmd string) error {
 			return err
 		}
 
-		time.Sleep(time.Duration(s.KeyPressDelay) * time.Millisecond * 100)
+		time.Sleep(time.Duration(s.KeyPressDelay) * time.Millisecond)
 	}
 
 	return nil

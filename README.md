@@ -10,7 +10,7 @@ TizenOs.
 ## Install
 
 ```bash
-go get github.com/stephensli/samsung-tv-api@v0.2.0
+go get github.com/stephensli/samsung-tv-api@v0.2.1
 ```
 
 ## Usage

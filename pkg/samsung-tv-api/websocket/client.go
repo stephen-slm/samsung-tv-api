@@ -4,19 +4,24 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/stephenSLI/samsung-tv-ws-api/pkg/samsung-tv-api/keys"
+	"github.com/stephensli/samsung-tv-api/pkg/samsung-tv-api/keys"
 	"golang.org/x/net/websocket"
 	"log"
 	"net"
 	"net/url"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 )
 
 type SamsungWebsocket struct {
-	BaseUrl       *url.URL
-	KeyPressDelay int
-	conn          *websocket.Conn
+	BaseUrl         func(string) *url.URL
+	KeyPressDelay   int
+	conn            *websocket.Conn
+	readMutex       sync.Mutex
+	writeMutex      sync.Mutex
+	isReadWriteMode int32
 }
 
 type Request struct {
@@ -35,9 +40,13 @@ func (s *SamsungWebsocket) OpenConnection() (*ConnectionResponse, error) {
 		s.conn = nil
 	}
 
-	origin := "http://localhost/"
+	s.readMutex = sync.Mutex{}
+	s.writeMutex = sync.Mutex{}
 
-	config, _ := websocket.NewConfig(s.BaseUrl.String(), origin)
+	origin := "http://localhost/"
+	u := s.BaseUrl("samsung.remote.control").String()
+
+	config, _ := websocket.NewConfig(u, origin)
 	config.TlsConfig = &tls.Config{InsecureSkipVerify: true}
 	config.Dialer = &net.Dialer{Timeout: time.Millisecond * 200}
 
@@ -59,34 +68,53 @@ func (s *SamsungWebsocket) OpenConnection() (*ConnectionResponse, error) {
 // and then receive content back from the TV, unmarshalling the response to the output
 // interface.
 func (s *SamsungWebsocket) sendJSONReceiveJSON(command interface{}, output interface{}) error {
+	s.writeMutex.Lock()
+	s.readMutex.Lock()
+
+	atomic.AddInt32(&s.isReadWriteMode, 1)
+
+	defer func() {
+		atomic.AddInt32(&s.isReadWriteMode, -1)
+		s.writeMutex.Unlock()
+		s.readMutex.Unlock()
+	}()
+
 	err := s.sendJSON(command)
 
 	if err != nil {
 		return err
 	}
 
-	return s.readJSON(&output)
+	return s.readJSON(output)
 }
 
 // sendJSON will convert the provided command interface to JSON and then
 // into a byte array stream, sending it to the server.
 func (s *SamsungWebsocket) sendJSON(command interface{}) error {
-	msg, err := json.Marshal(command)
+	if atomic.LoadInt32(&s.isReadWriteMode) != 1 {
+		s.writeMutex.Lock()
+		defer s.writeMutex.Unlock()
+	}
 
-	fmt.Println(string(msg))
-	fmt.Println(command)
+	msg, err := json.Marshal(command)
 
 	if err != nil {
 		return err
 	}
 
 	_, err = s.conn.Write(msg)
+
 	return err
 }
 
 // read will read the next frame of data from the websocket.
 // Returning the byte array back.
 func (s *SamsungWebsocket) read() ([]byte, error) {
+	if atomic.LoadInt32(&s.isReadWriteMode) != 1 {
+		fmt.Println("atomic read lock not set, locking read", atomic.LoadInt32(&s.isReadWriteMode))
+		s.readMutex.Lock()
+		defer s.readMutex.Unlock()
+	}
 
 	var data []byte
 	err := websocket.Message.Receive(s.conn, &data)
@@ -98,8 +126,6 @@ func (s *SamsungWebsocket) read() ([]byte, error) {
 // to convert the content to JSON and unmarshal to the given type.
 func (s *SamsungWebsocket) readJSON(val interface{}) error {
 	msg, err := s.read()
-
-	fmt.Println(string(msg))
 
 	if err != nil {
 		return err
@@ -118,7 +144,7 @@ func (s *SamsungWebsocket) readJSON(val interface{}) error {
 //
 // DOC: TODO
 func (s *SamsungWebsocket) GetApplicationsList() (ApplicationsResponse, error) {
-	log.Println("Get application lists via ws api")
+	log.Println("Getting applications lists via ws api")
 
 	var output ApplicationsResponse
 
@@ -131,6 +157,7 @@ func (s *SamsungWebsocket) GetApplicationsList() (ApplicationsResponse, error) {
 	}
 
 	err := s.sendJSONReceiveJSON(req, &output)
+
 	return output, err
 }
 
@@ -169,7 +196,7 @@ func (s *SamsungWebsocket) RunApplication(appId, appType, metaTag string) error 
 //
 // TODO
 // 	* This has to been tested with any bad input, should be regarded as not stable.
-func (s *SamsungWebsocket) sendClick(key string) error {
+func (s *SamsungWebsocket) SendClick(key string) error {
 	return s.SendKey(key, 1, "Click")
 }
 
@@ -205,7 +232,7 @@ func (s *SamsungWebsocket) SendKey(key string, times int, cmd string) error {
 			return err
 		}
 
-		time.Sleep(time.Duration(s.KeyPressDelay) * time.Millisecond * 100)
+		time.Sleep(time.Duration(s.KeyPressDelay) * time.Millisecond)
 	}
 
 	return nil
@@ -291,13 +318,21 @@ func (s *SamsungWebsocket) OpenBrowser(url string) error {
 	return s.RunApplication("org.tizen.browser", "NATIVE_LAUNCH", url)
 }
 
-// PowerOff will send the keys.PowerOff key which will attempt to turn of
+// Power will send the keys.Power key which will attempt to turn off or on
+//
+// TODO
+// 	* This requires to be tested, it has not been ran to close any applications yet.
+func (s *SamsungWebsocket) Power() error {
+	return s.SendClick(keys.Power)
+}
+
+// PowerOff will send the keys.PowerOff key which will attempt to turn off
 // the TV if and only if its on on and a legacy TV. Otherwise, use Power Toggle.
 //
 // TODO
 // 	* This requires to be tested, it has not been ran to close any applications yet.
 func (s *SamsungWebsocket) PowerOff() error {
-	return s.sendClick(keys.PowerOff)
+	return s.SendClick(keys.PowerOff)
 }
 
 // PowerOn will send the keys.PowerOn key which will attempt to turn on
@@ -306,5 +341,9 @@ func (s *SamsungWebsocket) PowerOff() error {
 // TODO
 // 	* This requires to be tested, it has not been ran to close any applications yet.
 func (s *SamsungWebsocket) PowerOn() error {
-	return s.sendClick(keys.PowerOn)
+	return s.SendClick(keys.PowerOn)
+}
+
+func (s *SamsungWebsocket) Disconnect() error {
+	return s.conn.Close()
 }

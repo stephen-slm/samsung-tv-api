@@ -5,7 +5,7 @@ type GetDeviceVolumeResponse struct {
 		Body struct {
 			GetVolumeResponse struct {
 				CurrentVolume string `json:"CurrentVolume"`
-			} `json:"GetDeviceVolumeResponse"`
+			} `json:"GetVolumeResponse"`
 		} `json:"Body"`
 	} `json:"Envelope"`
 }

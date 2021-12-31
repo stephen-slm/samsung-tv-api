@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -12,7 +13,7 @@ import (
 )
 
 type SamsungRestClient struct {
-	BaseUrl *url.URL
+	BaseUrl func(string) *url.URL
 }
 
 // makeRestRequest will send a API http call to the given endpoint (base url + endpoint)
@@ -21,9 +22,9 @@ type SamsungRestClient struct {
 // TODO
 // 	* support binding to a non 200 response or determine the error message returned and use it in the error response
 func (s *SamsungRestClient) makeRestRequest(endpoint, method string, output interface{}) error {
-	u := fmt.Sprintf("%s/%s", s.BaseUrl.String(), endpoint)
+	u := s.BaseUrl(endpoint).String()
 
-	fmt.Println(u)
+	log.Printf("rest url %s\n", u)
 
 	client := &http.Client{
 		Transport: &http.Transport{
@@ -45,7 +46,10 @@ func (s *SamsungRestClient) makeRestRequest(endpoint, method string, output inte
 		return clientErr
 	}
 
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
+
 	return json.NewDecoder(resp.Body).Decode(&output)
 }
 
@@ -68,7 +72,7 @@ func (s *SamsungRestClient) GetDeviceInfo() (DeviceResponse, error) {
 // TODO
 // 	* This has to been tested with any bad input, should be regarded as not stable.
 func (s *SamsungRestClient) GetApplicationStatus(appId string) (ApplicationResponse, error) {
-	log.Println("Get application info via rest api")
+	log.Println("Getting applications info via rest api")
 
 	var output ApplicationResponse
 	err := s.makeRestRequest(fmt.Sprintf("applications/%s", appId), "get", &output)

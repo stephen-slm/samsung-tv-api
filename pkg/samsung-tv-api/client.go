@@ -1,10 +1,12 @@
 package samsung_tv_api
 
 import (
+	"encoding/base64"
 	"fmt"
-	"github.com/stephenSLI/samsung-tv-ws-api/pkg/samsung-tv-api/http"
-	"github.com/stephenSLI/samsung-tv-ws-api/pkg/samsung-tv-api/soap"
-	"github.com/stephenSLI/samsung-tv-ws-api/pkg/samsung-tv-api/websocket"
+	"github.com/stephensli/samsung-tv-api/internal/app/samsung-tv-api/wol"
+	"github.com/stephensli/samsung-tv-api/pkg/samsung-tv-api/http"
+	"github.com/stephensli/samsung-tv-api/pkg/samsung-tv-api/soap"
+	"github.com/stephensli/samsung-tv-api/pkg/samsung-tv-api/websocket"
 	"log"
 	"net/url"
 )
@@ -16,13 +18,13 @@ type SamsungTvClient struct {
 
 	host          string
 	token         string
+	mac           string
 	port          int
-	timeout       int
 	keyPressDelay int
 	name          string
 }
 
-func NewSamsungTvWebSocket(host, token string, port, timeout, keyPressDelay int, name string, autoConnect bool) *SamsungTvClient {
+func NewSamsungTvWebSocket(host, token string, port, keyPressDelay int, name string, autoConnect bool) *SamsungTvClient {
 	if keyPressDelay == 0 {
 		keyPressDelay = 1
 	}
@@ -36,22 +38,27 @@ func NewSamsungTvWebSocket(host, token string, port, timeout, keyPressDelay int,
 		host:          host,
 		token:         token,
 		port:          port,
-		timeout:       timeout,
 		keyPressDelay: keyPressDelay,
 		name:          name,
 	}
 
 	client.Rest = http.SamsungRestClient{
-		BaseUrl: client.formatRestUrl(""),
+		BaseUrl: func(endpoint string) *url.URL {
+			return client.formatRestUrl(endpoint)
+		},
 	}
 
 	client.Websocket = websocket.SamsungWebsocket{
-		BaseUrl:       client.formatWebSocketUrl("samsung.remote.control"),
+		BaseUrl: func(endpoint string) *url.URL {
+			return client.formatWebSocketUrl(endpoint)
+		},
 		KeyPressDelay: keyPressDelay,
 	}
 
 	client.Upnp = soap.SamsungSoapClient{
-		BaseUrl: client.formatUpnpUrl(""),
+		BaseUrl: func(endpoint string) *url.URL {
+			return client.formatUpnpUrl(endpoint)
+		},
 	}
 
 	if autoConnect {
@@ -73,8 +80,8 @@ func (s *SamsungTvClient) ConnectionSetup() error {
 		return err
 	}
 
-	if len(wsResp.Data.Clients) > 0 && wsResp.Data.Clients[0].Attributes.Token != "" {
-		s.token = wsResp.Data.Clients[0].Attributes.Token
+	if len(wsResp.Data.Clients) > 0 && wsResp.Data.Token != "" {
+		s.token = wsResp.Data.Token
 	}
 
 	return nil
@@ -88,17 +95,22 @@ func (s *SamsungTvClient) isSslConnection() bool {
 
 // formatWebSocketUrl returns the formatted web socket url for connecting
 func (s *SamsungTvClient) formatWebSocketUrl(endpoint string) *url.URL {
+	if endpoint != "" && string(endpoint[0]) != "/" {
+		endpoint = "/" + endpoint
+	}
+
+	name := base64.StdEncoding.EncodeToString([]byte(s.name))
+
 	u := &url.URL{
 		Scheme:   "ws",
 		Host:     fmt.Sprintf("%s:%d", s.host, s.port),
-		Path:     fmt.Sprintf("api/v2/channels/%s", endpoint),
-		RawQuery: fmt.Sprintf("name=%s", s.name),
+		Path:     fmt.Sprintf("api/v2/channels%s", endpoint),
+		RawQuery: fmt.Sprintf("name=%s", name),
 	}
 
 	if s.isSslConnection() {
 		u.Scheme += "s"
 		u.RawQuery += fmt.Sprintf("&token=%s", s.token)
-		return u
 	}
 
 	return u
@@ -107,10 +119,18 @@ func (s *SamsungTvClient) formatWebSocketUrl(endpoint string) *url.URL {
 // formatRestUrl returns the formatted rest api url for connecting to
 // the tv rest service
 func (s *SamsungTvClient) formatRestUrl(endpoint string) *url.URL {
+	if endpoint != "" && string(endpoint[0]) != "/" {
+		endpoint = "/" + endpoint
+	}
+
+	if endpoint == "" || string(endpoint[len(endpoint)-1]) != "/" {
+		endpoint += "/"
+	}
+
 	u := &url.URL{
 		Scheme: "http",
 		Host:   fmt.Sprintf("%s:%d", s.host, s.port),
-		Path:   fmt.Sprintf("api/v2/%s", endpoint),
+		Path:   fmt.Sprintf("api/v2%s", endpoint),
 	}
 
 	if s.isSslConnection() {
@@ -123,14 +143,36 @@ func (s *SamsungTvClient) formatRestUrl(endpoint string) *url.URL {
 // formatUpnpUrl returns the formatted api url for connecting to
 // the tv soap service
 func (s *SamsungTvClient) formatUpnpUrl(endpoint string) *url.URL {
-	return &url.URL{
+	if endpoint != "" && string(endpoint[0]) != "/" {
+		endpoint = "/" + endpoint
+	}
+
+	u := &url.URL{
 		Scheme: "http",
 		Host:   fmt.Sprintf("%s:%d", s.host, 9197),
-		Path:   fmt.Sprintf("upnp/control/%s", endpoint),
+		Path:   fmt.Sprintf("upnp/control%s", endpoint),
 	}
+
+	return u
+}
+
+func (s *SamsungTvClient) Disconnect() error {
+	return s.Websocket.Disconnect()
 }
 
 // GetToken returns the current Auth token used by the client.
 func (s *SamsungTvClient) GetToken() string {
 	return s.token
+}
+
+// WakeOnLan broadcasts a magic packet to all listening devices with the target
+// mac address being the device (provided) thus telling the TV to turn on.
+func WakeOnLan(mac string) error {
+	packet, err := wol.NewMagicPacket(mac)
+
+	if err != nil {
+		return err
+	}
+
+	return packet.Send("255.255.255.255")
 }

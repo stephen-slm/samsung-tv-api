@@ -7,6 +7,7 @@ import (
 	"github.com/stephenSLI/samsung-tv-ws-api/pkg/samsung-tv-api/keys"
 	"golang.org/x/net/websocket"
 	"log"
+	"net"
 	"net/url"
 	"strings"
 	"time"
@@ -38,6 +39,7 @@ func (s *SamsungWebsocket) OpenConnection() (*ConnectionResponse, error) {
 
 	config, _ := websocket.NewConfig(s.BaseUrl.String(), origin)
 	config.TlsConfig = &tls.Config{InsecureSkipVerify: true}
+	config.Dialer = &net.Dialer{Timeout: time.Millisecond * 200}
 
 	ws, err := websocket.DialConfig(config)
 

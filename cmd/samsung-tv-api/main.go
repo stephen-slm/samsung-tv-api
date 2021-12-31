@@ -11,7 +11,12 @@ func main() {
 	config := helpers.LoadConfiguration()
 
 	c := samsung_tv_api.NewSamsungTvWebSocket("192.168.1.188", config.Token, 8002, 0, 1, "", true)
-	device, _ := c.Rest.GetDeviceInfo()
+	device, err := c.Rest.GetDeviceInfo()
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	updatedToken := c.GetToken()
 
 	if updatedToken != "" && updatedToken != config.Token {
